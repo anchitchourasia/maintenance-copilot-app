@@ -7,4 +7,4 @@ env:
   - name: DATABRICKS_TOKEN
     value: 'dapid21506aed4b53a4caa9cc7a752a2bb54'
   - name: GEMINI_API_KEY
-    value: 'AIzaSyCyour_actual_gemini_key_here'  ← PUT YOUR REAL KEY
+    value: 'AIzaSyCjqKtOEygr9eJYM8hfQNknfH20ibKWI48'
