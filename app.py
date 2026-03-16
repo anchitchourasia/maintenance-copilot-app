@@ -244,4 +244,4 @@ with c3:
     st.markdown("- Real-time Risk Dashboard")
 
 st.markdown("---")
-st.caption("**Built by Anchit Chourasia** | HEG Limited AI Engineer | [GitHub](https://github.com/anchitchourasia)")
+st.caption("**Built by Anchit Chourasia** | Aspiring AI Engineer | [GitHub](https://github.com/anchitchourasia)")
