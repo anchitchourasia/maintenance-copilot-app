@@ -178,23 +178,41 @@ if st.button("Get AI Advice", type="primary") and question:
             context = priority_df.head(10).to_string(index=False) if not priority_df.empty else "No priority data available"
 
             prompt = f"""
-Predictive Maintenance Intelligence Report
+You are a predictive maintenance assistant.
 
-Data Summary:
+Use ONLY the data provided below.
+Do NOT use outside knowledge.
+Do NOT invent dates, thresholds, causes, downtime, cost savings, or machine details.
+If something is not explicitly present in the data, say "Not available in provided data".
+
+Provided data:
 {context}
 
-Model: Random Forest (AUC 0.954)
+User question:
+{question}
 
-USER QUESTION: {question}
+Return the answer in exactly these sections:
 
-Provide:
-1. Actionable maintenance recommendations
-2. Priority machine list
-3. Risk mitigation steps
-4. Estimated impact
+1. Summary
+- Give a short answer based only on the provided data.
 
-Format as a short professional engineering report.
+2. Priority machines
+- List only machines visible in the provided data.
+- Include only these fields if available: udi, product_id, machine_type, risk_level, priority.
+
+3. Recommended actions
+- Suggest practical maintenance actions based only on the visible risk/priority information.
+- Do not mention tool wear, thresholds, downtime, or financial impact unless explicitly present.
+
+4. Missing data
+- List any important details that are not available in the provided data.
+
+Rules:
+- Stay fully grounded in the provided data.
+- If the question asks for something unsupported, state that it is not available in provided data.
+- Keep the response concise and professional.
 """
+
             response = llm.generate_content(prompt)
             st.success("✅ AI Analysis Complete!")
             st.markdown("### AI Maintenance Advisor")
