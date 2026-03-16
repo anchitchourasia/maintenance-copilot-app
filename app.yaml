@@ -6,5 +6,3 @@ env:
     value: '/sql/1.0/warehouses/0dfb28cd62b755d9'
   - name: DATABRICKS_TOKEN
     value: 'dapid21506aed4b53a4caa9cc7a752a2bb54'
-  - name: GEMINI_API_KEY
-    value: 'AIzaSyCjqKtOEygr9eJYM8hfQNknfH20ibKWI48'
