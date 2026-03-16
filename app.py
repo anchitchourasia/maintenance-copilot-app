@@ -1,5 +1,17 @@
-import numpy as np
+"""
+Predictive Maintenance Copilot
+Databricks Lakehouse + Random Forest (AUC 0.954) + Gemini 3 Flash
+"""
+
+import os
+import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
+from dotenv import load_dotenv
+import databricks.sql
+import google.generativeai as genai
+
 
 # ---------- THEME ----------
 st.markdown("""
