@@ -75,7 +75,7 @@ def load_kpis():
 def load_priority():
     conn = get_connection()
     return pd.read_sql(
-        "SELECT * FROM default.maintenance_priority WHERE priority <= 20 ORDER BY priority",
+        "SELECT * FROM default.maintenance_priority WHERE priority <= 10 ORDER BY priority",
         conn
     )
 
