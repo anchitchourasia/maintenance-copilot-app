@@ -73,7 +73,6 @@ def load_priority():
     conn = get_connection()
     return pd.read_sql("SELECT * FROM default.maintenance_priority WHERE priority <= 20 ORDER BY priority", conn)
 
-
 # Main dashboard
 col1, col2, col3, col4 = st.columns(4)
 predictions_df = load_predictions()
@@ -133,8 +132,11 @@ with col2:
 st.subheader("🎯 Top Maintenance Priorities")
 priority_df = load_priority()
 if not priority_df.empty:
+    # FIXED: priority_rank → priority
+    display_cols = ['udi', 'product_id', 'machine_type', 'risk_level', 'priority']
+    available_cols = [col for col in display_cols if col in priority_df.columns]
     st.dataframe(
-        priority_df[['udi', 'product_id', 'machine_type', 'risk_level', 'priority_rank']],
+        priority_df[available_cols],
         use_container_width=True
     )
 else:
