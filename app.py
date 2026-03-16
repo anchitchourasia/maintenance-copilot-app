@@ -165,6 +165,7 @@ if not priority_df.empty:
 else:
     st.info("No priority data available.")
 
+# AI Assistant
 st.subheader("🤖 AI Maintenance Advisor")
 question = st.text_area(
     "Ask about machine health or maintenance strategy:",
@@ -175,15 +176,17 @@ if st.button("Get AI Advice", type="primary") and question:
     with st.spinner("AI analyzing maintenance data..."):
         try:
             llm = get_llm()
-            context = priority_df.head(10).to_string(index=False) if not priority_df.empty else "No priority data available"
+
+            safe_cols = [col for col in ["udi", "product_id", "machine_type", "risk_level", "priority"] if col in priority_df.columns]
+            context = priority_df[safe_cols].head(10).to_string(index=False) if not priority_df.empty else "No priority data available"
 
             prompt = f"""
 You are a predictive maintenance assistant.
 
 Use ONLY the data provided below.
 Do NOT use outside knowledge.
-Do NOT invent dates, thresholds, causes, downtime, cost savings, or machine details.
-If something is not explicitly present in the data, say "Not available in provided data".
+Do NOT invent dates, thresholds, causes, downtime, cost savings, tool wear, machine_failure values, or any field not explicitly present.
+If something is not explicitly present in the data, say: Not available in provided data.
 
 Provided data:
 {context}
@@ -201,15 +204,15 @@ Return the answer in exactly these sections:
 - Include only these fields if available: udi, product_id, machine_type, risk_level, priority.
 
 3. Recommended actions
-- Suggest practical maintenance actions based only on the visible risk/priority information.
-- Do not mention tool wear, thresholds, downtime, or financial impact unless explicitly present.
+- Suggest practical maintenance actions based only on visible risk_level and priority.
+- Do not mention any unsupported technical cause.
 
 4. Missing data
-- List any important details that are not available in the provided data.
+- List important details not available in the provided data.
 
 Rules:
 - Stay fully grounded in the provided data.
-- If the question asks for something unsupported, state that it is not available in provided data.
+- If the question asks for something unsupported, say it is not available in provided data.
 - Keep the response concise and professional.
 """
 
@@ -217,8 +220,10 @@ Rules:
             st.success("✅ AI Analysis Complete!")
             st.markdown("### AI Maintenance Advisor")
             st.markdown(response.text)
+
         except Exception as e:
             st.error(f"AI service error: {str(e)}")
+
 
 st.markdown("---")
 c1, c2, c3 = st.columns(3)
