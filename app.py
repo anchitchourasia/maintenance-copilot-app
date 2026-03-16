@@ -74,10 +74,18 @@ def load_kpis():
 @st.cache_data(ttl=60)
 def load_priority():
     conn = get_connection()
-    return pd.read_sql(
-        "SELECT * FROM default.maintenance_priority WHERE priority <= 20 ORDER BY priority",
-        conn
-    )
+    if product_search:
+        # Include searched product even if low priority
+        extra_query = f"""
+        UNION ALL SELECT *, ROW_NUMBER() OVER (ORDER BY prediction DESC, tool_wear_min DESC) as priority 
+        FROM default.gold_predictions 
+        WHERE product_id LIKE '%{product_search}%' AND priority IS NULL
+        """
+        query = f"SELECT * FROM default.maintenance_priority WHERE priority <= 20 {extra_query} ORDER BY priority"
+    else:
+        query = "SELECT * FROM default.maintenance_priority WHERE priority <= 20 ORDER BY priority"
+    return pd.read_sql(query, conn)
+
 
 predictions_df = load_predictions()
 kpis_df = load_kpis()
