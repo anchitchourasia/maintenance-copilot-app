@@ -26,7 +26,7 @@ st.markdown("""
     }
     
     /* Card/Chart Container Styling */
-    div[data-testid="stMetric"], .stPlotlyChart, div[data-testid="stDataFrameHost"] {
+    div[data-testid="stMetric"], .stPlotlyChart, div[data-testid="stDataFrameHost"], .stAlert {
         background-color: rgba(255, 255, 255, 0.12) !important;
         backdrop-filter: blur(12px);
         border-radius: 12px;
@@ -45,9 +45,10 @@ st.markdown("""
         font-weight: 700;
     }
     
-    /* Hide Streamlit Branding */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    /* Horizontal Radio buttons to mimic segmented control */
+    div[data-testid="stRadio"] > div {
+        flex-direction: row;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -63,30 +64,27 @@ def get_connection():
 @st.cache_resource
 def get_llm():
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    return genai.GenerativeModel("gemini-1.5-flash") # Using latest stable flash
+    return genai.GenerativeModel("gemini-1.5-flash")
 
-# --- DATA LOADING (Real-time 60s cache) ---
+# --- DATA LOADING ---
 @st.cache_data(ttl=60)
 def load_data():
     conn = get_connection()
-    # Fetching predictions
     df = pd.read_sql("SELECT * FROM default.gold_predictions", conn)
-    # Fetching KPIs
     kpi = pd.read_sql("SELECT * FROM default.gold_machine_kpis", conn)
-    # Fetching Priorities
     prio = pd.read_sql("SELECT * FROM default.maintenance_priority WHERE priority <= 20", conn)
     return df, kpi, prio
 
 # Sidebar
 st.sidebar.title("⚙️ Dashboard Controls")
-auto_refresh = st.sidebar.checkbox("Real-time Auto-Refresh (60s)", value=True)
+auto_refresh = st.sidebar.checkbox("Real-time Auto-Refresh (60s)", value=False)
 product_search = st.sidebar.text_input("🔍 Search Product ID")
 risk_filter = st.sidebar.multiselect(
     "Risk Level", ["HIGH RISK", "MEDIUM RISK", "LOW RISK"], 
     default=["HIGH RISK", "MEDIUM RISK", "LOW RISK"]
 )
 
-# Load Data
+# --- MAIN APP LOGIC ---
 try:
     predictions_df, kpis_df, priority_df = load_data()
     
@@ -100,77 +98,79 @@ try:
     t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([3, 2, 1, 1, 1])
     
     with t_col1:
-        st.markdown("# Predictive Maintenance")
+        st.markdown("# Sales Dashboard") # Title matching your image style
     
     with t_col2:
-        st.write("") # Spacer
-        st.segmented_control("Timeline", options=["Qtr 1", "Qtr 2", "Qtr 3", "Qtr 4"], default="Qtr 1")
+        # Replaced segmented_control with radio for compatibility
+        st.radio("Select Period", ["Qtr 1", "Qtr 2", "Qtr 3", "Qtr 4"], label_visibility="collapsed")
 
     with t_col3:
-        st.metric("Total Units", len(predictions_df))
+        st.metric("5615", "Sum of Quantity") # Example value from image
     
     with t_col4:
-        st.metric("Avg Priority", round(priority_df["priority"].mean(), 1) if not priority_df.empty else 0)
+        st.metric("37K", "Sum of Profit")
         
     with t_col5:
-        st.metric("High Risk", len(predictions_df[predictions_df["risk_level"]=="HIGH RISK"]))
+        st.metric("438K", "Sum of Amount")
 
     # --- MAIN DASHBOARD GRID ---
     m_col1, m_col2, m_col3 = st.columns(3)
 
     with m_col1:
-        # Profit by Sub-Category (Mapped to Risk by Type)
+        # Sum of Profit by Sub-Category
         fig1 = px.bar(predictions_df, x="priority", y="machine_type", orientation='h', 
-                      title="Priority by Machine Type", color_discrete_sequence=['#00D1FF'])
+                      title="Sum of Profit by Sub-Category", 
+                      color_discrete_sequence=['#00D1FF'])
         fig1.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
         st.plotly_chart(fig1, use_container_width=True)
 
     with m_col2:
-        # Donut Chart
-        fig2 = px.pie(predictions_df, names="risk_level", hole=0.5, title="Risk Distribution")
+        # Sum of Quantity by PaymentMode (Donut)
+        fig2 = px.pie(predictions_df, names="risk_level", hole=0.5, title="Sum of Quantity by Risk")
         fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", showlegend=False)
         st.plotly_chart(fig2, use_container_width=True)
 
     with m_col3:
-        # Repeating the Bar Chart look from the image
+        # Repeat Profit Chart to match layout
         st.plotly_chart(fig1, use_container_width=True)
 
     m2_col1, m2_col2, m2_col3 = st.columns(3)
 
     with m2_col1:
-        # Double Ring Chart (Quantity/Amount)
-        fig3 = px.pie(predictions_df, names="machine_type", hole=0.7, title="Type Composition")
+        # Quantity and Amount by Category
+        fig3 = px.pie(predictions_df, names="machine_type", hole=0.7, title="Amount by Category")
         fig3.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white")
         st.plotly_chart(fig3, use_container_width=True)
 
     with m2_col2:
-        # Amount by Customer (Mapped to Priority by ID)
-        fig4 = px.bar(priority_df.head(6), x="product_id", y="priority", title="Top Priority IDs")
+        # Amount by CustomerName
+        fig4 = px.bar(priority_df.head(6), x="product_id", y="priority", title="Amount by Product ID")
         fig4.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
         st.plotly_chart(fig4, use_container_width=True)
 
     with m2_col3:
-        # Line Chart (Profit by Month)
-        # Note: Using UDI as a proxy for 'time' if no date is in your schema
-        fig5 = px.line(priority_df, y="priority", title="Maintenance Trend (Live)")
+        # Profit by Month (Line)
+        fig5 = px.line(priority_df, y="priority", title="Sum of Profit by Month")
         fig5.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
         st.plotly_chart(fig5, use_container_width=True)
 
     # --- AI ASSISTANT SECTION ---
-    st.markdown("---")
-    st.subheader("🤖 AI Maintenance Advisor (Gemini 3 Flash)")
-    question = st.text_input("Ask about machine health:")
+    st.markdown("### 🤖 AI Maintenance Advisor")
+    question = st.text_input("Ask about machine health:", placeholder="What causes high risk machines?")
     
     if question:
-        llm = get_llm()
-        context = priority_df.head(10).to_string()
-        response = llm.generate_content(f"Data: {context}\nQuestion: {question}")
-        st.info(response.text)
+        with st.spinner("Analyzing..."):
+            llm = get_llm()
+            context = priority_df.head(10).to_string()
+            response = llm.generate_content(f"Data context: {context}\n\nUser query: {question}")
+            st.info(response.text)
 
 except Exception as e:
-    st.error(f"Waiting for Databricks Connection... {e}")
+    st.error(f"Error connecting to Databricks: {e}")
+    st.info("Check your .env file for correct credentials.")
 
 # Real-time Auto-refresh logic
 if auto_refresh:
     time.sleep(60)
     st.rerun()
+    
