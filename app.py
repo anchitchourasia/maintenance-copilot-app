@@ -3,23 +3,16 @@ Predictive Maintenance Copilot
 Databricks Lakehouse + Random Forest (AUC 0.954) + Gemini 3 Flash
 """
 
-import streamlit as st
+import os
 import pandas as pd
 import plotly.express as px
-import numpy as np
-import os
+import streamlit as st
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Databricks SQL Connector
 import databricks.sql
-
-# LLM (Gemini 3 Flash)
 import google.generativeai as genai
 
-# Page config
+load_dotenv()
+
 st.set_page_config(
     layout="wide",
     page_title="Maintenance Copilot",
@@ -29,7 +22,6 @@ st.set_page_config(
 st.title("🔧 Predictive Maintenance Copilot")
 st.markdown("**Databricks Lakehouse | Random Forest AUC 0.954 | Gemini 3 Flash**")
 
-# Sidebar
 st.sidebar.title("⚙️ Controls")
 product_search = st.sidebar.text_input("🔍 Search Product ID")
 risk_filter = st.sidebar.multiselect(
@@ -38,7 +30,6 @@ risk_filter = st.sidebar.multiselect(
     default=["HIGH RISK", "MEDIUM RISK"]
 )
 
-# Connection function
 @st.cache_resource
 def get_connection():
     return databricks.sql.connect(
@@ -47,105 +38,110 @@ def get_connection():
         access_token=os.getenv("DATABRICKS_TOKEN")
     )
 
-# LLM Setup (Gemini 3 Flash)
 @st.cache_resource
 def get_llm():
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    return genai.GenerativeModel('gemini-3-flash-preview')
+    return genai.GenerativeModel("gemini-3-flash-preview")
 
-# Load data functions
 @st.cache_data(ttl=300)
 def load_predictions():
     conn = get_connection()
     query = """
-    SELECT * FROM default.gold_predictions 
+    SELECT * FROM default.gold_predictions
     WHERE risk_level IN ('HIGH RISK', 'MEDIUM RISK', 'LOW RISK')
     """
-    return pd.read_sql(query, conn)
+    df = pd.read_sql(query, conn)
+
+    if product_search:
+        df = df[df["product_id"].astype(str).str.contains(product_search, case=False, na=False)]
+
+    if risk_filter:
+        df = df[df["risk_level"].isin(risk_filter)]
+
+    return df
 
 @st.cache_data(ttl=300)
 def load_kpis():
     conn = get_connection()
     return pd.read_sql("SELECT * FROM default.gold_machine_kpis", conn)
 
-st.dataframe(
-    priority_df[['udi', 'product_id', 'machine_type', 'risk_level', 'priority_rank']],
-    use_container_width=True
-)
-
-# Main dashboard
-col1, col2, col3, col4 = st.columns(4)
-predictions_df = load_predictions()
-
-with col1:
-    st.metric(
-        "Total Machines",
-        len(predictions_df),
-        delta=f"{len(predictions_df[predictions_df['risk_level']=='HIGH RISK'])} High Risk"
+@st.cache_data(ttl=300)
+def load_priority():
+    conn = get_connection()
+    return pd.read_sql(
+        "SELECT * FROM default.maintenance_priority WHERE priority <= 20 ORDER BY priority",
+        conn
     )
 
+predictions_df = load_predictions()
+kpis_df = load_kpis()
+priority_df = load_priority()
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    high_risk_count = len(predictions_df[predictions_df["risk_level"] == "HIGH RISK"]) if not predictions_df.empty else 0
+    st.metric("Total Machines", len(predictions_df), delta=f"{high_risk_count} High Risk")
+
 with col2:
-    high_risk_pct = len(predictions_df[predictions_df['risk_level']=='HIGH RISK']) / len(predictions_df)
+    high_risk_pct = (
+        len(predictions_df[predictions_df["risk_level"] == "HIGH RISK"]) / len(predictions_df)
+        if not predictions_df.empty else 0
+    )
     st.metric("High Risk %", f"{high_risk_pct:.1%}")
 
 with col3:
     try:
-        kpis_df = load_kpis()
-        if not kpis_df.empty and 'failure_rate' in kpis_df.columns:
-            avg_failure = kpis_df['failure_rate'].mean()
+        if not kpis_df.empty and "failure_rate" in kpis_df.columns:
+            avg_failure = kpis_df["failure_rate"].mean()
             delta_text = f"vs Actual {avg_failure:.1%}"
         else:
-            delta_text = "KPI table empty/missing column"
-    except:
-        delta_text = "Table not ready"
+            delta_text = "KPI column not found"
+    except Exception:
+        delta_text = "KPI table not ready"
     st.metric("Model AUC", "0.954", delta=delta_text)
 
 with col4:
-    priority_df = load_priority()
     st.metric("Priority Actions", len(priority_df))
 
-# Charts
 col1, col2 = st.columns(2)
 
 with col1:
-    # Risk distribution
-    risk_counts = predictions_df['risk_level'].value_counts()
-    fig_pie = px.pie(
-        values=risk_counts.values, 
-        names=risk_counts.index, 
-        title="Risk Distribution"
-    )
-    st.plotly_chart(fig_pie, use_container_width=True)
+    if not predictions_df.empty and "risk_level" in predictions_df.columns:
+        risk_counts = predictions_df["risk_level"].value_counts()
+        fig_pie = px.pie(
+            values=risk_counts.values,
+            names=risk_counts.index,
+            title="Risk Distribution"
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        st.info("No prediction data available")
 
 with col2:
-    # Machine type risk
-    fig_bar = px.bar(
-        predictions_df, 
-        x="machine_type", 
-        color="risk_level",
-        title="Risk by Machine Type", 
-        barmode="group"
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
+    if not predictions_df.empty and {"machine_type", "risk_level"}.issubset(predictions_df.columns):
+        fig_bar = px.histogram(
+            predictions_df,
+            x="machine_type",
+            color="risk_level",
+            title="Risk by Machine Type",
+            barmode="group"
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.info("No machine type data available")
 
-# Priority maintenance list
 st.subheader("🎯 Top Maintenance Priorities")
-priority_df = load_priority()
 if not priority_df.empty:
-    # FIXED: priority_rank → priority
-    display_cols = ['udi', 'product_id', 'machine_type', 'risk_level', 'priority']
+    display_cols = ["udi", "product_id", "machine_type", "risk_level", "priority"]
     available_cols = [col for col in display_cols if col in priority_df.columns]
-    st.dataframe(
-        priority_df[available_cols],
-        use_container_width=True
-    )
+    st.dataframe(priority_df[available_cols], use_container_width=True)
 else:
-    st.info("Run Notebook 06_kpi_tables.sql first to create priority table")
+    st.info("No priority data available")
 
-# AI Assistant
 st.subheader("🤖 AI Maintenance Advisor")
 question = st.text_area(
-    "Ask about machine health or maintenance strategy:", 
+    "Ask about machine health or maintenance strategy:",
     placeholder="Which machines should I fix first? What causes high risk?"
 )
 
@@ -153,49 +149,47 @@ if st.button("Get AI Advice", type="primary") and question:
     with st.spinner("AI analyzing maintenance data..."):
         try:
             llm = get_llm()
-            
-            # Context for LLM
-            context = priority_df.head(10).to_string() if not priority_df.empty else "No priority data available"
+            context = priority_df.head(10).to_string(index=False) if not priority_df.empty else "No priority data available"
+
             prompt = f"""
-            Predictive Maintenance Intelligence Report
-            
-            Data Summary:
-            {context}
-            
-            Model: Random Forest (AUC 0.954)
-            
-            USER QUESTION: {question}
-            
-            Provide:
-            1. Actionable maintenance recommendations  
-            2. Priority machine list (UDI/Product ID specific)
-            3. Risk mitigation steps
-            4. Estimated impact (downtime/cost savings)
-            
-            Format as professional engineering report.
-            """
-            
+Predictive Maintenance Intelligence Report
+
+Data Summary:
+{context}
+
+Model: Random Forest (AUC 0.954)
+
+USER QUESTION: {question}
+
+Provide:
+1. Actionable maintenance recommendations
+2. Priority machine list
+3. Risk mitigation steps
+4. Estimated impact
+
+Format as a short professional engineering report.
+"""
             response = llm.generate_content(prompt)
             st.success("✅ AI Analysis Complete!")
-            st.markdown("### **AI Maintenance Advisor**")
+            st.markdown("### AI Maintenance Advisor")
             st.markdown(response.text)
-            
         except Exception as e:
             st.error(f"AI service error: {str(e)}")
-            st.info("Get free Gemini API key: https://makersuite.google.com/app/apikey")
 
-# Footer
 st.markdown("---")
-col1, col2, col3 = st.columns(3)
-with col1:
+c1, c2, c3 = st.columns(3)
+
+with c1:
     st.markdown("**🗄️ Databricks Lakehouse**")
     st.markdown("- Medallion Architecture (Bronze/Silver/Gold)")
     st.markdown("- Delta Lake (ACID + Time Travel)")
-with col2:
+
+with c2:
     st.markdown("**🤖 ML Pipeline**")
     st.markdown("- Random Forest Classification")
     st.markdown("- AUC: **0.954**")
-with col3:
+
+with c3:
     st.markdown("**🚀 Production**")
     st.markdown("- Batch Inference Pipeline")
     st.markdown("- Real-time Risk Dashboard")
