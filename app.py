@@ -176,7 +176,7 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown("**🗄️ Databricks Lakehouse**")
     st.markdown("- Medallion Architecture (Bronze/Silver/Gold)")
-    st.markmarkdown("- Delta Lake (ACID + Time Travel)")
+    st.markdown("- Delta Lake (ACID + Time Travel)")
 
 with c2:
     st.markdown("**🤖 ML Pipeline**")
