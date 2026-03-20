@@ -79,26 +79,15 @@ This project demonstrates how to build a practical AI application that connects 
 
 ## Architecture
 
-```text
-Raw Dataset
-   |
-   v
-Bronze Layer (Raw Ingestion)
-   |
-   v
-Silver Layer (Cleaned / Feature Engineered Data)
-   |
-   v
-Gold Layer
-   |-- gold_predictions
-   |-- gold_machine_kpis
-   |-- maintenance_priority
-   |
-   v
-ML Model (Random Forest + MLflow)
-   |
-   v
-Batch Inference
-   |
-   v
-Streamlit Dashboard + Gemini AI Advisor
+```mermaid
+flowchart TD
+    A[Raw Dataset] --> B[Bronze Layer<br/>Raw Ingestion]
+    B --> C[Silver Layer<br/>Cleaned / Feature Engineered Data]
+    C --> D[Gold Layer]
+    D --> D1[gold_predictions]
+    D --> D2[gold_machine_kpis]
+    D --> D3[maintenance_priority]
+    D --> E[ML Model<br/>Random Forest + MLflow]
+    E --> F[Batch Inference]
+    F --> G[Streamlit Dashboard + Gemini AI Advisor]
+
