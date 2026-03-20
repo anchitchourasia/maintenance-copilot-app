@@ -89,5 +89,159 @@ flowchart TD
     D --> D3[maintenance_priority]
     D --> E[ML Model<br/>Random Forest + MLflow]
     E --> F[Batch Inference]
-    F --> G[Streamlit Dashboard + Gemini AI Advisor]
+    F --> G[Streamlit Dashboard + Gemini AI Advisor] 
+```
+Features
+1. Live Dashboard
+Real-time KPI cards
 
+Risk distribution chart
+
+Risk by machine type
+
+Priority action analysis
+
+Trend-based visual insights
+
+Product search and risk filtering
+
+2. Machine Learning Pipeline
+Predictive maintenance classification
+
+Random Forest model training
+
+MLflow experiment tracking
+
+Batch inference pipeline
+
+AUC-based model performance reporting
+
+3. AI Maintenance Advisor
+Gemini-powered assistant
+
+Grounded responses based only on provided dashboard data
+
+Priority machine recommendations
+
+Missing-data awareness
+
+Safe response formatting for demo-ready outputs
+
+4. Data Engineering
+Bronze, Silver, Gold table pipeline
+
+Databricks SQL integration
+
+Delta Lake architecture
+
+Real-time query-driven dashboard
+
+
+Gold Tables Used
+default.gold_predictions
+default.gold_machine_kpis
+default.maintenance_priority
+
+Dashboard Metrics
+The dashboard includes:
+
+Total Machines
+
+High Risk Count
+
+High Risk Percentage
+
+Medium Risk Count
+
+Priority Actions
+
+Model AUC
+
+Risk Distribution
+
+Machine Type Analysis
+
+Priority by Machine Type
+
+Trend Visualizations
+
+AI Advisor Example
+The AI advisor answers questions such as:
+
+Which machines should I fix first?
+
+What are the highest priority maintenance items?
+
+Which product IDs are high risk?
+
+What information is missing from the current data?
+
+It is designed to stay grounded in the actual data passed from the dashboard instead of generating unsupported claims.
+
+Tech Stack
+Python
+Streamlit
+Plotly
+Pandas
+Databricks SQL
+Delta Lake
+MLflow
+Gemini API
+GitHub
+
+Project Structure
+maintenance-copilot-app/
+├── app.py
+├── app.yaml
+├── requirements.txt
+├── README.md
+├── .gitignore
+├── assets/
+│   ├── dashboard-overview.png
+│   ├── ai-advisor.png
+│   └── databricks-pipeline.png
+└── notebooks/
+    ├── 01_bronze_ingestion
+    ├── 02_gold_features
+    ├── 03_model_training_mlflow
+    ├── 04_batch_inference
+    ├── 05_delta_demo
+    └── 06_kpi_tables_sql
+
+Run Locally
+git clone https://github.com/anchitchourasia/maintenance-copilot-app.git
+cd maintenance-copilot-app
+pip install -r requirements.txt
+streamlit run app.py
+
+Environment Variables
+Create a .env file in the project root:
+DATABRICKS_HOST=your_databricks_host
+DATABRICKS_HTTP_PATH=your_http_path
+DATABRICKS_TOKEN=your_databricks_token
+GEMINI_API_KEY=your_gemini_api_key
+
+
+Results
+Use Case: Predictive Maintenance
+
+Model: Random Forest Classifier
+
+AUC Score: 0.954
+
+Deployment Style: Databricks App + Streamlit
+
+Strength: End-to-end ML + dashboard + LLM integration
+
+Future Improvements
+Real-time streaming predictions
+
+Role-based dashboard access
+
+Alerting and notification workflows
+
+Deeper root-cause analysis
+
+More advanced model comparison
+
+Exportable maintenance reports
