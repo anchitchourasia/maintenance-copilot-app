@@ -91,8 +91,8 @@ flowchart TD
     E --> F[Batch Inference]
     F --> G[Streamlit Dashboard + Gemini AI Advisor] 
 ```
-Features
-1. Live Dashboard
+## Features
+###1. Live Dashboard
 Real-time KPI cards
 
 Risk distribution chart
